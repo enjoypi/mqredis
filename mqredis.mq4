@@ -8,22 +8,18 @@
 #property version   "1.00"
 #property strict
 
-//typedef struct redisReply {
-//    int type; /* REDIS_REPLY_* */
-//    PORT_LONGLONG integer; /* The integer when type is REDIS_REPLY_INTEGER */
-//    int len; /* Length of string */
-//    char *str; /* Used for both REDIS_REPLY_ERROR and REDIS_REPLY_STRING */
-//    size_t elements; /* number of elements, for REDIS_REPLY_ARRAY */
-//    struct redisReply **element; /* elements vector for REDIS_REPLY_ARRAY */
-//} redisReply;
-
 #import "hiredis.dll"
 
-int mqConnect(string &ip,int port);
-//int mqConnectWithTimeout(string&ip,int port,long sec,long usec);
+int redisConnect(char &ip[],int port);
+void redisFree(int c);
+int redisCommand(int c,char &format[],char &arg[]);
+void freeReplyObject(int reply);
 
-void mqFree(int connection);
-string mqCommand(int connection,const string &command);
+int mqConnect(const string &ip,int port);
+int mqConnectWithTimeout(const string &ip,int port,long sec,long usec);
+void mqFree(int c);
+string mqCommand(int c,const string &format);
+
 // mqAppendCommandArgv
 // mqAppendFormattedCommand
 // mqBufferRead
@@ -61,8 +57,15 @@ void OnStart()
   {
 //---
    string ip="127.0.0.1";
-   int connection=mqConnect(ip,6739);
-//int connection=mqConnectWithTimeout(ip,6379,0,1);
+//
+   char sip[];
+   StringToCharArray("127.0.0.1\0",sip,0,WHOLE_ARRAY,CP_UTF8);
+   int connection=0;
+   redisConnect(sip,6739);
+   mqFree(connection);
+
+   //int connection=mqConnect(ip,6379);
+//int connection=mqConnectWithTimeout(ip, 6379, 1, 0);
    Print("mqConnect ",connection);
 
    string command="SET a hello";
@@ -73,9 +76,6 @@ void OnStart()
    result=mqCommand(connection,command);
    Print("GET a ",result);
 
-   //mqFree(connection);
+   mqFree(connection);
   }
-//+------------------------------------------------------------------+
-
-
 //+------------------------------------------------------------------+
