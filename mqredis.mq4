@@ -58,13 +58,14 @@ void OnStart()
 //---
    string ip="127.0.0.1";
 //
-   char sip[];
-   StringToCharArray("127.0.0.1\0",sip,0,WHOLE_ARRAY,CP_UTF8);
-   int connection=0;
-   redisConnect(sip,6739);
-   mqFree(connection);
+   uchar sip[];
+//   StringToCharArray("127.0.0.1",sip,0,WHOLE_ARRAY,CP_UTF8);
+//StringToCharArray("127.0.0.1",sip);
+//int connection=0;
+//redisConnect(sip,6739);
+//mqFree(connection);
 
-   //int connection=mqConnect(ip,6379);
+   int connection=mqConnect(ip,6379);
 //int connection=mqConnectWithTimeout(ip, 6379, 1, 0);
    Print("mqConnect ",connection);
 
