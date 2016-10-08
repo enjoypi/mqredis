@@ -10,13 +10,17 @@
 
 #import "hiredis.dll"
 
-int redisConnect(char &ip[],int port);
-void redisFree(int c);
-int redisCommand(int c,char &format[],char &arg[]);
-void freeReplyObject(int reply);
+//int redisConnect(char &ip[],int port);
+//void redisFree(int c);
+//int redisCommand(int c,char &format[],char &arg[]);
+//void freeReplyObject(int reply);
 
 int mqConnect(const string &ip,int port);
-int mqConnectWithTimeout(const string &ip,int port,long sec,long usec);
+int mqConnect2(char &ip[],int len,int port);
+//int mqConnectWithTimeout(const string &ip,int port,long sec,long usec);
+
+int mqConnectWithTimeout(string ip,int port,long sec,long usec);
+
 void mqFree(int c);
 string mqCommand(int c,const string &format);
 
@@ -57,19 +61,19 @@ void OnStart()
   {
 //---
    string ip="127.0.0.1";
-//
+   int connection;
+
    uchar sip[];
-//   StringToCharArray("127.0.0.1",sip,0,WHOLE_ARRAY,CP_UTF8);
+   StringToCharArray("127.0.0.1",sip,0,WHOLE_ARRAY,CP_UTF8);
 //StringToCharArray("127.0.0.1",sip);
-//int connection=0;
-//redisConnect(sip,6739);
+//connection=mqConnect2(sip,StringLen(ip), 6739);
 //mqFree(connection);
 
-   int connection=mqConnect(ip,6379);
-//int connection=mqConnectWithTimeout(ip, 6379, 1, 0);
+   connection=mqConnect(ip,6379);
+//connection=mqConnectWithTimeout(ip, 6379, 1, 0);
    Print("mqConnect ",connection);
 
-   string command="SET a hello";
+   string command="SET a 'hello world'";
    string result=mqCommand(connection,command);
    Print("SET a ",result);
 
