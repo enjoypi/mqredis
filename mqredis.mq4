@@ -10,17 +10,29 @@
 
 #import "hiredis.dll"
 
-//int redisConnect(char &ip[],int port);
+#define REDIS_REPLY_STRING 1
+#define REDIS_REPLY_ARRAY 2
+#define REDIS_REPLY_INTEGER 3
+#define REDIS_REPLY_NIL 4
+#define REDIS_REPLY_STATUS 5
+#define REDIS_REPLY_ERROR 6
+
 void redisFree(int c);
 int redisCommand(int c,uchar &command[]);
-int redisCommand1(int c,uchar &format[],uchar &arg1[]);
-int redisCommand2(int c,uchar &format[],uchar &arg1[],uchar &arg2[]);
-int redisCommand3(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[]);
-int redisCommand4(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[],uchar &arg4[]);
+
+int redisCommand(int c,uchar &format[],int arg1);
+int redisCommand(int c,uchar &format[],uchar &arg1[]);
+
+int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[]);
+
+int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[]);
+int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[],uchar &arg4[]);
 void freeReplyObject(int reply);
 
 int mqConnect(const string &ip,int port);
-string mqCommand(int c,const string &format);
+int mqReplyType(int reply);
+int mqReplyStrLen(int reply);
+bool mqReplyStr(int reply,uchar&vaule[]);
 
 #import
 //+------------------------------------------------------------------+
@@ -35,6 +47,25 @@ int StringToUtf8(string  text_string,
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+string GetResult(int reply)
+  {
+   int len= mqReplyStrLen(reply);
+   if(len<=0)
+     {
+      return NULL;
+     }
+
+   uchar result[];
+   ArrayResize(result,len);
+   if(mqReplyStr(reply,result))
+     {
+      return CharArrayToString(result, 0, WHOLE_ARRAY, CP_UTF8);
+     }
+   return NULL;
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void OnStart()
   {
 //---
@@ -42,21 +73,32 @@ void OnStart()
    int connection=mqConnect(ip,6379);
    Print("mqConnect ",connection);
 
+   int reply;
    uchar format[];
    uchar arg1[];
    uchar arg2[];
+
+   StringToUtf8("SET i %d",format);
+   reply=redisCommand(connection,format,999999999);
+   Print("SET i ",GetResult(reply));
+   freeReplyObject(reply);
+
+   StringToUtf8("GET i",format);
+   reply=redisCommand(connection,format);
+   Print("GET i ",GetResult(reply));
+   freeReplyObject(reply);
+
    StringToUtf8("SET %s %s",format);
    StringToUtf8("foo",arg1);
    StringToUtf8("hello world",arg2);
-
-   int r=redisCommand2(connection,format,arg1,arg2);
-   Print("SET foo ",r);
-   freeReplyObject(r);
+   reply=redisCommand(connection,format,arg1,arg2);
+   Print("SET foo ",GetResult(reply));
+   freeReplyObject(reply);
 
    StringToUtf8("GET foo",format);
-   r=redisCommand(connection,format);
-   Print("GET foo ",r);
-   freeReplyObject(r);
+   reply=redisCommand(connection,format);
+   Print("GET foo ",GetResult(reply));
+   freeReplyObject(reply);
 
    redisFree(connection);
   }
