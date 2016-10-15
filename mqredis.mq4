@@ -17,6 +17,12 @@
 #define REDIS_REPLY_STATUS 5
 #define REDIS_REPLY_ERROR 6
 
+#define AE_FILE_EVENTS 1
+#define AE_TIME_EVENTS 2
+#define AE_ALL_EVENTS (AE_FILE_EVENTS|AE_TIME_EVENTS)
+#define AE_DONT_WAIT 4
+
+
 void redisFree(int c);
 int redisCommand(int c,uchar &command[]);
 
@@ -29,10 +35,27 @@ int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[]
 int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[],uchar &arg4[]);
 void freeReplyObject(int reply);
 
+// int redisAeAttach(aeEventLoop *loop,redisAsyncContext *ac);
+int redisAeAttach(int loop,int ac);
+// redisAsyncContext *redisAsyncConnect(const char *ip,int port);
+int redisAsyncConnect(const uchar &ip[],int port);
+// void redisAsyncFree(redisAsyncContext *ac);
+void redisAsyncFree(int ac);
+// int redisAsyncCommand(redisAsyncContext *ac, redisCallbackFn *fn, void *privdata, const char *format, ...);
+int redisAsyncCommand(int ac,int fn,int privdata,const uchar &command[]);
+int redisAsyncCommand(int ac,int fn,int privdata,const uchar &format[],const uchar &arg1[]);
+// aeEventLoop *aeCreateEventLoop(int setsize);
+int aeCreateEventLoop(int setsize);
+// int aeProcessEvents(aeEventLoop *eventLoop, int flags);
+int aeProcessEvents(int eventLoop, int flags);
+
+
 int mqConnect(string ip,int port);
 int mqReplyType(int reply);
 int mqReplyStrLen(int reply);
 bool mqReplyStr(int reply,uchar&vaule[]);
+
+int mqAsyncCommand(int ac,int fn,int privdata,const uchar &command[]);
 
 #import
 
@@ -114,5 +137,27 @@ void OnStart()
 
    redisFree(connection);
    fclose(logfile);
+  }
+//+------------------------------------------------------------------+
+int OnInit()
+  {
+   uchar ip[];
+   StringToUtf8("127.0.0.1",ip);
+   int c=redisAsyncConnect(ip,6379);
+//   if(c->err)
+//     {
+///* Let *c leak for now... */
+//      printf("Error: %s\n",c->errstr);
+//      return 1;
+//     }
+
+   int loop=aeCreateEventLoop(1024);
+   redisAeAttach(loop,c);
+
+   uchar command[];
+   StringToUtf8("SUBSCRIBE testtopic",command);
+   redisAsyncCommand(c,0,0,command);
+   //aeProcessEvents(loop, AE_ALL_EVENTS);
+   return INIT_SUCCEEDED;
   }
 //+------------------------------------------------------------------+
