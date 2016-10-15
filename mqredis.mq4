@@ -29,10 +29,21 @@ int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[]
 int redisCommand(int c,uchar &format[],uchar &arg1[],uchar &arg2[],uchar &arg3[],uchar &arg4[]);
 void freeReplyObject(int reply);
 
-int mqConnect(const string &ip,int port);
+int mqConnect(string ip,int port);
 int mqReplyType(int reply);
 int mqReplyStrLen(int reply);
 bool mqReplyStr(int reply,uchar&vaule[]);
+
+#import
+
+#import "msvcrt.dll"
+
+int _wfopen(string filename,string mode);
+int fclose(int file);
+int fflush(int file);
+
+int fwprintf(int file,string format,int arg1);
+int fwprintf(int file,string format,string arg1);
 
 #import
 //+------------------------------------------------------------------+
@@ -68,10 +79,11 @@ string GetResult(int reply)
 //+------------------------------------------------------------------+
 void OnStart()
   {
-//---
-   string ip="127.0.0.1";
-   int connection=mqConnect(ip,6379);
-   Print("mqConnect ",connection);
+   int logfile=_wfopen("D:\\debug.log","w");
+
+   int connection=mqConnect("127.0.0.1",6379);
+   fwprintf(logfile,"mqConnect %p\n",connection);
+   fflush(logfile);
 
    int reply;
    uchar format[];
@@ -80,26 +92,27 @@ void OnStart()
 
    StringToUtf8("SET i %d",format);
    reply=redisCommand(connection,format,999999999);
-   Print("SET i ",GetResult(reply));
+   fwprintf(logfile,"SET i %s\n",GetResult(reply));
    freeReplyObject(reply);
 
    StringToUtf8("GET i",format);
    reply=redisCommand(connection,format);
-   Print("GET i ",GetResult(reply));
+   fwprintf(logfile,"GET i %s\n",GetResult(reply));
    freeReplyObject(reply);
 
    StringToUtf8("SET %s %s",format);
    StringToUtf8("foo",arg1);
    StringToUtf8("hello world",arg2);
    reply=redisCommand(connection,format,arg1,arg2);
-   Print("SET foo ",GetResult(reply));
+   fwprintf(logfile,"SET foo %s\n",GetResult(reply));
    freeReplyObject(reply);
 
    StringToUtf8("GET foo",format);
    reply=redisCommand(connection,format);
-   Print("GET foo ",GetResult(reply));
+   fwprintf(logfile,"GET foo %s\n",GetResult(reply));
    freeReplyObject(reply);
 
    redisFree(connection);
+   fclose(logfile);
   }
 //+------------------------------------------------------------------+
