@@ -47,15 +47,17 @@ int redisAsyncCommand(int ac,int fn,int privdata,const uchar &format[],const uch
 // aeEventLoop *aeCreateEventLoop(int setsize);
 int aeCreateEventLoop(int setsize);
 // int aeProcessEvents(aeEventLoop *eventLoop, int flags);
-int aeProcessEvents(int eventLoop, int flags);
-
+int aeProcessEvents(int eventLoop,int flags);
+// void aeMain(aeEventLoop *eventLoop);
+void aeMain(int eventLoop);
 
 int mqConnect(string ip,int port);
 int mqReplyType(int reply);
 int mqReplyStrLen(int reply);
 bool mqReplyStr(int reply,uchar&vaule[]);
 
-int mqAsyncCommand(int ac,int fn,int privdata,const uchar &command[]);
+// int mqSubscribe(redisAsyncContext *c, const char* channel, void* privdata) 
+int mqSubscribe(int ac,const uchar &channel[],int &reply);
 
 #import
 
@@ -102,7 +104,7 @@ string GetResult(int reply)
 //+------------------------------------------------------------------+
 void OnStart()
   {
-   int logfile=_wfopen("D:\\debug.log","w");
+   int logfile=_wfopen("D:\\onstart.log","w");
 
    int connection=mqConnect("127.0.0.1",6379);
    fwprintf(logfile,"mqConnect %p\n",connection);
@@ -143,7 +145,7 @@ int OnInit()
   {
    uchar ip[];
    StringToUtf8("127.0.0.1",ip);
-   int c=redisAsyncConnect(ip,6379);
+   int ac=redisAsyncConnect(ip,6379);
 //   if(c->err)
 //     {
 ///* Let *c leak for now... */
@@ -152,12 +154,16 @@ int OnInit()
 //     }
 
    int loop=aeCreateEventLoop(1024);
-   redisAeAttach(loop,c);
+   redisAeAttach(loop,ac);
 
-   uchar command[];
-   StringToUtf8("SUBSCRIBE testtopic",command);
-   redisAsyncCommand(c,0,0,command);
-   //aeProcessEvents(loop, AE_ALL_EVENTS);
+   uchar channel[];
+   StringToUtf8("testtopic",channel);
+
+   int reply;
+   Print("mqSubscribe",mqSubscribe(ac,channel,reply));
+
+   aeMain(loop);
+//aeProcessEvents(loop, AE_ALL_EVENTS);
    return INIT_SUCCEEDED;
   }
 //+------------------------------------------------------------------+
