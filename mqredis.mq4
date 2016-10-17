@@ -141,6 +141,11 @@ void OnStart()
    fclose(logfile);
   }
 //+------------------------------------------------------------------+
+int loop;
+int subscribeReply;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 int OnInit()
   {
    uchar ip[];
@@ -153,17 +158,29 @@ int OnInit()
 //      return 1;
 //     }
 
-   int loop=aeCreateEventLoop(1024);
+   loop=aeCreateEventLoop(1024);
    redisAeAttach(loop,ac);
 
    uchar channel[];
    StringToUtf8("testtopic",channel);
 
-   int reply;
-   Print("mqSubscribe",mqSubscribe(ac,channel,reply));
+   Print("mqSubscribe ",mqSubscribe(ac,channel,subscribeReply));
 
-   aeMain(loop);
+//aeMain(loop);
 //aeProcessEvents(loop, AE_ALL_EVENTS);
+   EventSetMillisecondTimer(10);
    return INIT_SUCCEEDED;
+  }
+//+------------------------------------------------------------------+
+void OnTimer()
+  {
+   Print("OnTimer");
+   aeProcessEvents(loop,AE_ALL_EVENTS);
+   Print("subscribeReply ",subscribeReply);
+  }
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+   EventKillTimer();
   }
 //+------------------------------------------------------------------+

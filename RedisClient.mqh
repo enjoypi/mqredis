@@ -34,18 +34,18 @@ void  freeReplyObject(int reply);
 class CRedisClient
   {
 private:
-   int   m_connection;
-   
-            int      StringToUtf8(string  text_string,uchar  &array[]);
-            string   GetReplyString(int reply);
+   int               m_connection;
+
+   int               StringToUtf8(string  text_string,uchar  &array[]);
+   string            GetReplyString(int reply);
 public:
                      CRedisClient(string host,int port);
                     ~CRedisClient();
-                    
-            bool     Auth(string password,string &reply_string);
-            bool     Select(uint index,string &reply_string);
-            bool     Set(string key,string value,string &reply_string);
-            bool     Get(string key,string &reply_string);
+
+   bool              Auth(string password,string &reply_string);
+   bool              Select(uint index,string &reply_string);
+   bool              Set(string key,string value,string &reply_string);
+   bool              Get(string key,string &reply_string);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -86,7 +86,7 @@ CRedisClient::~CRedisClient()
         {
          Alert(StringFormat("%s(%d) %s: redis QUIT FAIL %s",AccountName(),AccountNumber(),__FUNCTION__,reply_string));
         }
-      
+
       redisFree(m_connection);
      }
   }
@@ -123,33 +123,37 @@ string CRedisClient::GetReplyString(int reply)
 bool CRedisClient::Auth(string password,
                         string &reply_string)
   {
-   if(m_connection!=NULL)
+   if(m_connection==NULL)
      {
-      uchar format[];
-      uchar arg1[];
-      int reply;
-   
-      StringToUtf8("AUTH %s",format);
-      StringToUtf8(password,arg1);
-      reply=redisCommand(m_connection,format,arg1);
-      int reply_type=mqReplyType(reply);
-      reply_string=GetReplyString(reply);
-      freeReplyObject(reply);
-      if(reply_type==REDIS_REPLY_STATUS&&StringCompare(reply_string,"OK")==0)
-        {
-         PrintFormat("Redis AUTHORIZED %s.",reply_string);
-         return(true);
-        }
-      else
-        {
-         Alert(StringFormat("%s(%d) %s: redis AUTHORIZE FAIL %s",AccountName(),AccountNumber(),__FUNCTION__,reply_string));
-        }
+      Alert(StringFormat("%s(%d) %s: Redis no connection",AccountName(),AccountNumber(),__FUNCTION__));
+      return false;
+     }
+
+   uchar format[];
+   uchar arg1[];
+   int reply;
+
+   StringToUtf8("AUTH %s",format);
+   StringToUtf8(password,arg1);
+   reply=redisCommand(m_connection,format,arg1);
+   if(reply==NULL)
+     {
+      return false;
+     }
+
+   int reply_type=mqReplyType(reply);
+   reply_string=GetReplyString(reply);
+   freeReplyObject(reply);
+   if(reply_type==REDIS_REPLY_STATUS && StringCompare(reply_string,"OK")==0)
+     {
+      PrintFormat("Redis AUTHORIZED %s.",reply_string);
+      return(true);
      }
    else
      {
-      Alert(StringFormat("%s(%d) %s: Redis no connection",AccountName(),AccountNumber(),__FUNCTION__));
+      Alert(StringFormat("%s(%d) %s: redis AUTHORIZE FAIL %s",AccountName(),AccountNumber(),__FUNCTION__,reply_string));
      }
-     
+
    return(false);
   }
 //+------------------------------------------------------------------+
@@ -159,40 +163,42 @@ bool CRedisClient::Set(string key,
                        string value,
                        string &reply_string)
   {
-   if(m_connection!=NULL)
+   if(m_connection==NULL)
      {
-      int reply;
-      uchar format[];
-      uchar arg1[];
-      uchar arg2[];
-      
-      StringToUtf8("SET %s %s",format);
-      StringToUtf8(key,arg1);
-      if(value==NULL)
-        {
-         value="";
-        }
-      StringToUtf8(value,arg2);
-      reply=redisCommand(m_connection,format,arg1,arg2);
-      int reply_type=mqReplyType(reply);
-      reply_string=GetReplyString(reply);
-      freeReplyObject(reply);
-      if(reply_type==REDIS_REPLY_STATUS&&StringCompare("OK",reply_string)==0)
-        {
-         PrintFormat("Redis SET \"%s\" \"%s\" %s",key,value,reply_string);
-         return(true);
-        }
-      else
-        {
-         Alert(StringFormat("%s(%d) %s: SET \"%s\" \"%s\" %s",AccountName(),AccountNumber(),__FUNCTION__,key,value,reply_string));
-        }
+      Alert(StringFormat("%s(%d) %s: Redis no connection",AccountName(),AccountNumber(),__FUNCTION__));
+      return(false);
+     }
+
+   int reply;
+   uchar format[];
+   uchar arg1[];
+   uchar arg2[];
+
+   StringToUtf8("SET %s %s",format);
+   StringToUtf8(key,arg1);
+   if(value==NULL)
+     {
+      value="";
+     }
+   StringToUtf8(value,arg2);
+   reply=redisCommand(m_connection,format,arg1,arg2);
+   if(reply==NULL)
+     {
+      return false;
+     }
+   int reply_type=mqReplyType(reply);
+   reply_string=GetReplyString(reply);
+   freeReplyObject(reply);
+   if(reply_type==REDIS_REPLY_STATUS && StringCompare("OK",reply_string)==0)
+     {
+      PrintFormat("Redis SET \"%s\" \"%s\" %s",key,value,reply_string);
+      return(true);
      }
    else
      {
-      Alert(StringFormat("%s(%d) %s: Redis no connection",AccountName(),AccountNumber(),__FUNCTION__));
+      Alert(StringFormat("%s(%d) %s: SET \"%s\" \"%s\" %s",AccountName(),AccountNumber(),__FUNCTION__,key,value,reply_string));
+      return false;
      }
-     
-   return(false);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -200,34 +206,30 @@ bool CRedisClient::Set(string key,
 bool CRedisClient::Get(string key,
                        string &reply_string)
   {
-   if(m_connection!=NULL)
-     {
-      int reply;
-      uchar format[];
-      uchar arg1[];
-      
-      StringToUtf8("GET %s",format);
-      StringToUtf8(key,arg1);
-      reply=redisCommand(m_connection,format,arg1);
-      int reply_type=mqReplyType(reply);
-      reply_string=GetReplyString(reply);
-      freeReplyObject(reply);
-      if(reply_type==REDIS_REPLY_STRING)
-        {
-         PrintFormat("Redis GET \"%s\" reply \"%s\"",key,reply_string);
-         return(true);
-        }
-      else
-        {
-         Alert(StringFormat("%s(%d) %s: GET \"%s\" %s",AccountName(),AccountNumber(),__FUNCTION__,key,reply_string));
-        }
-     }
-   else
+   if(m_connection==NULL)
      {
       Alert(StringFormat("%s(%d) %s: Redis no connection",AccountName(),AccountNumber(),__FUNCTION__));
+      return(false);
      }
-     
-   return(false);
+
+   int reply;
+   uchar format[];
+   uchar arg1[];
+
+   StringToUtf8("GET %s",format);
+   StringToUtf8(key,arg1);
+   reply=redisCommand(m_connection,format,arg1);
+   int reply_type=mqReplyType(reply);
+   reply_string=GetReplyString(reply);
+   freeReplyObject(reply);
+   if(reply_type==REDIS_REPLY_STRING)
+     {
+      PrintFormat("Redis GET \"%s\" reply \"%s\"",key,reply_string);
+      return(true);
+     }
+
+   Alert(StringFormat("%s(%d) %s: GET \"%s\" %s",AccountName(),AccountNumber(),__FUNCTION__,key,reply_string));
+   return false;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -235,26 +237,29 @@ bool CRedisClient::Get(string key,
 bool CRedisClient::Select(uint index,
                           string &reply_string)
   {
-   if(m_connection!=NULL)
-     {
-      int reply;
-      uchar format[];
-      
-      StringToUtf8("SELECT %d",format);
-      reply=redisCommand(m_connection,format,index);
-      int reply_type=mqReplyType(reply);
-      reply_string=GetReplyString(reply);
-      freeReplyObject(reply);
-      if(reply_type==REDIS_REPLY_STATUS&&StringCompare("OK",reply_string)==0)
-        {
-         PrintFormat("Redis SELECT %d %s",index,reply_string);
-         return(true);
-        }
-     }
-   else
+   if(m_connection==NULL)
      {
       Alert(StringFormat("%s(%d) %s: Redis no connection",AccountName(),AccountNumber(),__FUNCTION__));
+      return(false);
      }
-     
-   return(false);
+
+   int reply;
+   uchar format[];
+
+   StringToUtf8("SELECT %d",format);
+   reply=redisCommand(m_connection,format,index);
+   if(reply==NULL)
+     {
+      return false;
+     }
+   int reply_type=mqReplyType(reply);
+   reply_string=GetReplyString(reply);
+   freeReplyObject(reply);
+   if(reply_type==REDIS_REPLY_STATUS && StringCompare("OK",reply_string)==0)
+     {
+      PrintFormat("Redis SELECT %d %s",index,reply_string);
+      return(true);
+     }
+     return false;
   }
+//+------------------------------------------------------------------+
